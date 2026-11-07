@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Convertisseur de notes</title>
+<meta name="theme-color" content="#EEF1F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1424" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Notes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<style>
+/* Layout: one narrow column, a Seyès-ruled result card on top, then the inputs below. */
+:root {
+  --bg: #EEF1F6;
+  --surface: #FFFFFF;
+  --ink: #14213D;
+  --muted: #5B6783;
+  --line: #D9DFEA;
+  --accent: #2142C9;
+  --accent-ink: #FFFFFF;
+  --ruled: rgba(33, 66, 201, 0.10);
+  --ruled-fine: rgba(33, 66, 201, 0.05);
+  --margin: rgba(214, 69, 80, 0.55);
+  --warn: #A8480F;
+  --font-display: "Bricolage Grotesque", ui-rounded, system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1424;
+    --surface: #161E33;
+    --ink: #E8ECF7;
+    --muted: #93A0BF;
+    --line: #26304B;
+    --accent: #8CA0FF;
+    --accent-ink: #0E1424;
+    --ruled: rgba(140, 160, 255, 0.13);
+    --ruled-fine: rgba(140, 160, 255, 0.06);
+    --margin: rgba(255, 120, 130, 0.5);
+    --warn: #F0A56B;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1424;
+  --surface: #161E33;
+  --ink: #E8ECF7;
+  --muted: #93A0BF;
+  --line: #26304B;
+  --accent: #8CA0FF;
+  --accent-ink: #0E1424;
+  --ruled: rgba(140, 160, 255, 0.13);
+  --ruled-fine: rgba(140, 160, 255, 0.06);
+  --margin: rgba(255, 120, 130, 0.5);
+  --warn: #F0A56B;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.4;
+  padding-block: 20px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-text-size-adjust: 100%;
+}
+.app { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+.sub { margin: 2px 0 0; color: var(--muted); font-size: 0.9rem; }
+
+/* Result card, ruled like a Seyès page */
+.result {
+  position: relative;
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(var(--ruled) 1px, transparent 1px),
+    linear-gradient(var(--ruled-fine) 1px, transparent 1px);
+  background-size: 100% 32px, 100% 8px;
+  background-position: 0 6px, 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 22px 20px 18px 52px;
+  overflow: hidden;
+}
+.result::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 34px;
+  width: 1.5px;
+  background: var(--margin);
+}
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+}
+.big {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  flex-wrap: wrap;
+}
+.big .n { font-size: clamp(72px, 24vw, 108px); font-weight: 700; letter-spacing: -0.03em; color: var(--accent); }
+.big .d { font-size: 1.6rem; font-weight: 500; color: var(--muted); }
+.detail { margin: 12px 0 0; color: var(--muted); font-size: 0.92rem; font-variant-numeric: tabular-nums; min-height: 2.6em; }
+.detail strong { color: var(--ink); font-weight: 600; }
+.warn { color: var(--warn); }
+
+/* Controls */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 10px; }
+.sep { padding-bottom: 14px; color: var(--muted); font-weight: 500; }
+label, .lbl { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  height: 52px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0 14px;
+  text-align: center;
+}
+input[type="text"]:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+
+.seg { display: flex; gap: 6px; background: var(--bg); padding: 4px; border-radius: 14px; border: 1px solid var(--line); }
+.seg button {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: 600 0.95rem var(--font-body);
+  cursor: pointer;
+  padding: 0 6px;
+}
+.seg button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.custom { margin-top: 10px; }
+.custom input { height: 46px; font-size: 1.2rem; }
+
+/* Correspondence table */
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 0 18px; }
+summary { min-height: 52px; display: flex; align-items: center; cursor: pointer; font-weight: 600; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; margin-left: auto; font-size: 1.3rem; color: var(--muted); }
+details[open] summary::after { content: "–"; }
+.tablewrap { overflow-x: auto; padding-bottom: 14px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 8px 4px; border-top: 1px solid var(--line); }
+th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-top: 0; font-weight: 600; }
+th:first-child, td:first-child { text-align: left; }
+tr.cur td { background: var(--ruled); font-weight: 700; color: var(--accent); }
+.hint { color: var(--muted); font-size: 0.85rem; margin: 0 0 12px; }
+</style>
+
+<main class="app">
+  <header>
+    <h1>Convertisseur de notes</h1>
+    <p class="sub">Changez le barème d’une note, avec arrondi au choix.</p>
+  </header>
+
+  <section class="result" aria-live="polite">
+    <p class="eyebrow" id="eyebrow">Note sur 10</p>
+    <p class="big"><span class="n" id="out">6,5</span><span class="d" id="outOf">/ 10</span></p>
+    <p class="detail" id="detail"></p>
+  </section>
+
+  <section class="panel" aria-label="Réglages">
+    <div class="row">
+      <div>
+        <label for="note">Note obtenue</label>
+        <input id="note" type="text" inputmode="decimal" autocomplete="off" value="10" aria-label="Note obtenue">
+      </div>
+      <span class="sep">sur</span>
+      <div>
+        <label for="max">Barème</label>
+        <input id="max" type="text" inputmode="decimal" autocomplete="off" value="16" aria-label="Barème de départ">
+      </div>
+    </div>
+
+    <div>
+      <span class="lbl" id="lblTarget">Convertir sur</span>
+      <div class="seg" role="radiogroup" aria-labelledby="lblTarget" id="segTarget">
+        <button type="button" role="radio" data-v="10" aria-checked="true">10</button>
+        <button type="button" role="radio" data-v="20" aria-checked="false">20</button>
+        <button type="button" role="radio" data-v="custom" aria-checked="false">Autre</button>
+      </div>
+      <div class="custom" id="customWrap" hidden>
+        <input id="custom" type="text" inputmode="decimal" autocomplete="off" value="40" aria-label="Autre barème d’arrivée">
+      </div>
+    </div>
+
+    <div>
+      <span class="lbl" id="lblRound">Arrondi</span>
+      <div class="seg" role="radiogroup" aria-labelledby="lblRound" id="segRound">
+        <button type="button" role="radio" data-v="exact" aria-checked="false">Exact</button>
+        <button type="button" role="radio" data-v="half" aria-checked="true">Demi-point</button>
+        <button type="button" role="radio" data-v="one" aria-checked="false">Point</button>
+      </div>
+    </div>
+  </section>
+
+  <details id="tableBox">
+    <summary>Tableau de correspondance</summary>
+    <p class="hint" id="tableHint"></p>
+    <div class="tablewrap"><table id="tbl"></table></div>
+  </details>
+</main>
+
+<script>
+(function () {
+  var state = { target: "10", round: "half" };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function parse(v) {
+    var n = parseFloat(String(v).replace(",", ".").replace(/\s/g, ""));
+    return isFinite(n) ? n : NaN;
+  }
+  function fmt(n) {
+    return n.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+  }
+  function roundTo(x, mode) {
+    var step = mode === "half" ? 0.5 : mode === "one" ? 1 : 0;
+    if (!step) return Math.round(x * 100) / 100;
+    return Math.round(x / step + 1e-9) * step;
+  }
+  function roundLabel(mode) {
+    return mode === "half" ? "arrondi au demi-point" : mode === "one" ? "arrondi au point" : "valeur exacte";
+  }
+  function targetValue() {
+    return state.target === "custom" ? parse($("custom").value) : parseFloat(state.target);
+  }
+
+  function render() {
+    var note = parse($("note").value);
+    var max = parse($("max").value);
+    var tgt = targetValue();
+    var ok = isFinite(note) && isFinite(max) && isFinite(tgt) && max > 0 && tgt > 0 && note >= 0;
+
+    if (!ok) {
+      $("eyebrow").textContent = "Note convertie";
+      $("out").textContent = "–";
+      $("outOf").textContent = "";
+      $("detail").innerHTML = "Saisissez une note, son barème et le barème d’arrivée.";
+      $("tbl").innerHTML = "";
+      $("tableHint").textContent = "";
+      return;
+    }
+
+    var exact = note / max * tgt;
+    var res = roundTo(exact, state.round);
+
+    $("eyebrow").textContent = "Note sur " + fmt(tgt);
+    $("out").textContent = fmt(res);
+    $("outOf").textContent = "/ " + fmt(tgt);
+
+    var d = fmt(note) + " sur " + fmt(max) + " vaut <strong>" + fmt(Math.round(exact * 100) / 100) + "</strong> sur " + fmt(tgt);
+    d += state.round === "exact" ? "." : ", " + roundLabel(state.round) + ".";
+    if (note > max) d += ' <span class="warn">La note dépasse le barème (points bonus ?).</span>';
+    $("detail").innerHTML = d;
+
+    renderTable(note, max, tgt);
+  }
+
+  function renderTable(note, max, tgt) {
+    var tbl = $("tbl");
+    var whole = Math.floor(max) === max;
+    if (!whole || max > 40) {
+      tbl.innerHTML = "";
+      $("tableHint").textContent = "Le tableau s’affiche pour un barème entier jusqu’à 40.";
+      return;
+    }
+    $("tableHint").textContent = "Chaque note de 0 à " + fmt(max) + ", convertie sur " + fmt(tgt) + " (" + roundLabel(state.round) + ").";
+    var rows = '<tr><th>Sur ' + fmt(max) + '</th><th>Sur ' + fmt(tgt) + '</th></tr>';
+    for (var i = 0; i <= max; i++) {
+      var v = roundTo(i / max * tgt, state.round);
+      var cur = i === note ? ' class="cur"' : "";
+      rows += "<tr" + cur + "><td>" + i + "</td><td>" + fmt(v) + "</td></tr>";
+    }
+    tbl.innerHTML = rows;
+  }
+
+  function wireSeg(id, key) {
+    var seg = $(id);
+    seg.addEventListener("click", function (e) {
+      var b = e.target.closest("button");
+      if (!b) return;
+      state[key] = b.getAttribute("data-v");
+      Array.prototype.forEach.call(seg.querySelectorAll("button"), function (x) {
+        x.setAttribute("aria-checked", x === b ? "true" : "false");
+      });
+      if (key === "target") $("customWrap").hidden = state.target !== "custom";
+      render();
+    });
+  }
+
+  wireSeg("segTarget", "target");
+  wireSeg("segRound", "round");
+  ["note", "max", "custom"].forEach(function (id) {
+    $(id).addEventListener("input", render);
+    $(id).addEventListener("focus", function () { this.select(); });
+  });
+  render();
+})();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
